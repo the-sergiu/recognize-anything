@@ -27,9 +27,9 @@ class _Dataset(Dataset):
 
     def __getitem__(self, index):
         try:
-            img = Image.open(self.imglist[index]+".jpg")
+            img = Image.open(self.imglist[index] + ".jpg")
         except (OSError, FileNotFoundError, UnidentifiedImageError):
-            img = Image.new('RGB', (10, 10), 0)
+            img = Image.new("RGB", (10, 10), 0)
             print("Error loading image:", self.imglist[index])
         return self.transform(img)
 
@@ -37,59 +37,61 @@ class _Dataset(Dataset):
 def parse_args():
     parser = ArgumentParser()
     # model
-    parser.add_argument("--model-type",
-                        type=str,
-                        choices=("ram", "tag2text"),
-                        required=True)
-    parser.add_argument("--checkpoint",
-                        type=str,
-                        required=True)
-    parser.add_argument("--backbone",
-                        type=str,
-                        choices=("swin_l", "swin_b"),
-                        default=None,
-                        help="If `None`, will judge from `--model-type`")
-    parser.add_argument("--open-set",
-                        action="store_true",
-                        help=(
-                            "Treat all categories in the taglist file as "
-                            "unseen and perform open-set classification. Only "
-                            "works with RAM."
-                        ))
+    parser.add_argument(
+        "--model-type", type=str, choices=("ram", "tag2text"), required=True
+    )
+    parser.add_argument("--checkpoint", type=str, required=True)
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        choices=("swin_l", "swin_b"),
+        default=None,
+        help="If `None`, will judge from `--model-type`",
+    )
+    parser.add_argument(
+        "--open-set",
+        action="store_true",
+        help=(
+            "Treat all categories in the taglist file as "
+            "unseen and perform open-set classification. Only "
+            "works with RAM."
+        ),
+    )
     # data
-    parser.add_argument("--dataset",
-                        type=str,
-                        choices=(
-                            "openimages_common_214",
-                            "openimages_rare_200"
-                        ),
-                        required=True)
-    parser.add_argument("--input-size",
-                        type=int,
-                        default=384)
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=("openimages_common_214", "openimages_rare_200"),
+        required=True,
+    )
+    parser.add_argument("--input-size", type=int, default=384)
     # threshold
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--threshold",
-                       type=float,
-                       default=None,
-                       help=(
-                           "Use custom threshold for all classes. Mutually "
-                           "exclusive with `--threshold-file`. If both "
-                           "`--threshold` and `--threshold-file` is `None`, "
-                           "will use a default threshold setting."
-                       ))
-    group.add_argument("--threshold-file",
-                       type=str,
-                       default=None,
-                       help=(
-                           "Use custom class-wise thresholds by providing a "
-                           "text file. Each line is a float-type threshold, "
-                           "following the order of the tags in taglist file. "
-                           "See `ram/data/ram_tag_list_threshold.txt` as an "
-                           "example. Mutually exclusive with `--threshold`. "
-                           "If both `--threshold` and `--threshold-file` is "
-                           "`None`, will use default threshold setting."
-                       ))
+    group.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help=(
+            "Use custom threshold for all classes. Mutually "
+            "exclusive with `--threshold-file`. If both "
+            "`--threshold` and `--threshold-file` is `None`, "
+            "will use a default threshold setting."
+        ),
+    )
+    group.add_argument(
+        "--threshold-file",
+        type=str,
+        default=None,
+        help=(
+            "Use custom class-wise thresholds by providing a "
+            "text file. Each line is a float-type threshold, "
+            "following the order of the tags in taglist file. "
+            "See `ram/data/ram_tag_list_threshold.txt` as an "
+            "example. Mutually exclusive with `--threshold`. "
+            "If both `--threshold` and `--threshold-file` is "
+            "`None`, will use default threshold setting."
+        ),
+    )
     # miscellaneous
     parser.add_argument("--output-dir", type=str, default="./outputs")
     parser.add_argument("--batch-size", type=int, default=128)
@@ -109,11 +111,7 @@ def parse_args():
 
 
 def load_dataset(
-    dataset: str,
-    model_type: str,
-    input_size: int,
-    batch_size: int,
-    num_workers: int
+    dataset: str, model_type: str, input_size: int, batch_size: int, num_workers: int
 ) -> Tuple[DataLoader, Dict]:
     dataset_root = str(Path(__file__).resolve().parent / "datasets" / dataset)
     img_root = dataset_root + "/imgs"
@@ -134,26 +132,24 @@ def load_dataset(
         imglist = [img_root + "/" + line.strip().split(",")[0] for line in f]
 
     loader = DataLoader(
-        dataset=_Dataset(imglist,input_size),
+        dataset=_Dataset(imglist, input_size),
         shuffle=False,
         drop_last=False,
         pin_memory=True,
         batch_size=batch_size,
-        num_workers=num_workers
+        num_workers=num_workers,
     )
     info = {
         "taglist": taglist,
         "imglist": imglist,
         "annot_file": annot_file,
-        "img_root": img_root
+        "img_root": img_root,
     }
     return loader, info
 
 
 def get_class_idxs(
-    model_type: str,
-    open_set: bool,
-    taglist: List[str]
+    model_type: str, open_set: bool, taglist: List[str]
 ) -> Optional[List[int]]:
     """Get indices of required categories in the label system."""
     if model_type == "ram":
@@ -183,9 +179,7 @@ def load_thresholds(
             if not open_set:  # use class-wise tuned thresholds
                 ram_threshold_file = "ram/data/ram_tag_list_threshold.txt"
                 with open(ram_threshold_file, "r", encoding="utf-8") as f:
-                    idx2thre = {
-                        idx: float(line.strip()) for idx, line in enumerate(f)
-                    }
+                    idx2thre = {idx: float(line.strip()) for idx, line in enumerate(f)}
                     return [idx2thre[idx] for idx in class_idxs]
             else:
                 return [0.5] * num_classes
@@ -201,10 +195,7 @@ def load_thresholds(
 
 
 def gen_pred_file(
-    imglist: List[str],
-    tags: List[List[str]],
-    img_root: str,
-    pred_file: str
+    imglist: List[str], tags: List[List[str]], img_root: str, pred_file: str
 ) -> None:
     """Generate text file of tag prediction results."""
     with open(pred_file, "w", encoding="utf-8") as f:
@@ -235,53 +226,41 @@ def load_ram(
     return model.to(device).eval()
 
 
-def load_tag2text(
-    backbone: str,
-    checkpoint: str,
-    input_size: int
-) -> Module:
-    model = tag2text(
-        pretrained=checkpoint,
-        image_size=input_size,
-        vit=backbone
-    )
+def load_tag2text(backbone: str, checkpoint: str, input_size: int) -> Module:
+    model = tag2text(pretrained=checkpoint, image_size=input_size, vit=backbone)
     return model.to(device).eval()
 
 
 @torch.no_grad()
 def forward_ram(model: Module, imgs: Tensor) -> Tensor:
     image_embeds = model.image_proj(model.visual_encoder(imgs.to(device)))
-    image_atts = torch.ones(
-        image_embeds.size()[:-1], dtype=torch.long).to(device)
-    label_embed = relu(model.wordvec_proj(model.label_embed)).unsqueeze(0)\
+    image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(device)
+    label_embed = (
+        relu(model.wordvec_proj(model.label_embed))
+        .unsqueeze(0)
         .repeat(imgs.shape[0], 1, 1)
+    )
     tagging_embed, _ = model.tagging_head(
         encoder_embeds=label_embed,
         encoder_hidden_states=image_embeds,
         encoder_attention_mask=image_atts,
         return_dict=False,
-        mode='tagging',
+        mode="tagging",
     )
     return sigmoid(model.fc(tagging_embed).squeeze(-1))
 
 
 @torch.no_grad()
-def forward_tag2text(
-    model: Module,
-    class_idxs: List[int],
-    imgs: Tensor
-) -> Tensor:
+def forward_tag2text(model: Module, class_idxs: List[int], imgs: Tensor) -> Tensor:
     image_embeds = model.visual_encoder(imgs.to(device))
-    image_atts = torch.ones(
-        image_embeds.size()[:-1], dtype=torch.long).to(device)
-    label_embed = model.label_embed.weight.unsqueeze(0)\
-        .repeat(imgs.shape[0], 1, 1)
+    image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(device)
+    label_embed = model.label_embed.weight.unsqueeze(0).repeat(imgs.shape[0], 1, 1)
     tagging_embed, _ = model.tagging_head(
         encoder_embeds=label_embed,
         encoder_hidden_states=image_embeds,
         encoder_attention_mask=image_atts,
         return_dict=False,
-        mode='tagging',
+        mode="tagging",
     )
     return sigmoid(model.fc(tagging_embed))[:, class_idxs]
 
@@ -298,16 +277,23 @@ if __name__ == "__main__":
     output_dir = args.output_dir
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     pred_file, pr_file, ap_file, summary_file, logit_file = [
-        output_dir + "/" + name for name in
-        ("pred.txt", "pr.txt", "ap.txt", "summary.txt", "logits.pth")
+        output_dir + "/" + name
+        for name in ("pred.txt", "pr.txt", "ap.txt", "summary.txt", "logits.pth")
     ]
     with open(summary_file, "w", encoding="utf-8") as f:
         print_write(f, "****************")
         for key in (
-            "model_type", "backbone", "checkpoint", "open_set",
-            "dataset", "input_size",
-            "threshold", "threshold_file",
-            "output_dir", "batch_size", "num_workers"
+            "model_type",
+            "backbone",
+            "checkpoint",
+            "open_set",
+            "dataset",
+            "input_size",
+            "threshold",
+            "threshold_file",
+            "output_dir",
+            "batch_size",
+            "num_workers",
         ):
             print_write(f, f"{key}: {getattr(args, key)}")
         print_write(f, "****************")
@@ -318,16 +304,18 @@ if __name__ == "__main__":
         model_type=args.model_type,
         input_size=args.input_size,
         batch_size=args.batch_size,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
     )
-    taglist, imglist, annot_file, img_root = \
-        info["taglist"], info["imglist"], info["annot_file"], info["img_root"]
+    taglist, imglist, annot_file, img_root = (
+        info["taglist"],
+        info["imglist"],
+        info["annot_file"],
+        info["img_root"],
+    )
 
     # get class idxs
     class_idxs = get_class_idxs(
-        model_type=args.model_type,
-        open_set=args.open_set,
-        taglist=taglist
+        model_type=args.model_type, open_set=args.open_set, taglist=taglist
     )
 
     # set up threshold(s)
@@ -337,12 +325,11 @@ if __name__ == "__main__":
         model_type=args.model_type,
         open_set=args.open_set,
         class_idxs=class_idxs,
-        num_classes=len(taglist)
+        num_classes=len(taglist),
     )
 
     # inference
     if Path(logit_file).is_file():
-
         logits = torch.load(logit_file)
 
     else:
@@ -354,13 +341,13 @@ if __name__ == "__main__":
                 input_size=args.input_size,
                 taglist=taglist,
                 open_set=args.open_set,
-                class_idxs=class_idxs
+                class_idxs=class_idxs,
             )
         else:
             model = load_tag2text(
                 backbone=args.backbone,
                 checkpoint=args.checkpoint,
-                input_size=args.input_size
+                input_size=args.input_size,
             )
 
         # inference
@@ -372,7 +359,7 @@ if __name__ == "__main__":
             else:
                 out = forward_tag2text(model, class_idxs, imgs)
             bs = imgs.shape[0]
-            logits[pos:pos+bs, :] = out.cpu()
+            logits[pos : pos + bs, :] = out.cpu()
             pos += bs
 
         # save logits, making threshold-tuning super fast
@@ -381,9 +368,9 @@ if __name__ == "__main__":
     # filter with thresholds
     pred_tags = []
     for scores in logits.tolist():
-        pred_tags.append([
-            taglist[i] for i, s in enumerate(scores) if s >= thresholds[i]
-        ])
+        pred_tags.append(
+            [taglist[i] for i, s in enumerate(scores) if s >= thresholds[i]]
+        )
 
     # generate result file
     gen_pred_file(imglist, pred_tags, img_root, pred_file)

@@ -4,11 +4,7 @@ import numpy as np
 from numpy import ndarray
 
 
-def get_mAP(
-    preds: ndarray,
-    gt_file: str,
-    taglist: List[str]
-) -> Tuple[float, ndarray]:
+def get_mAP(preds: ndarray, gt_file: str, taglist: List[str]) -> Tuple[float, ndarray]:
     assert preds.shape[1] == len(taglist)
 
     # When mapping categories from test datasets to our system, there might be
@@ -59,9 +55,7 @@ def _average_precision(output: ndarray, target: ndarray) -> float:
 
 
 def get_PR(
-    pred_file: str,
-    gt_file: str,
-    taglist: List[str]
+    pred_file: str, gt_file: str, taglist: List[str]
 ) -> Tuple[float, float, ndarray, ndarray]:
     # When mapping categories from test datasets to our system, there might be
     # multiple vs one situation due to different semantic definitions of tags.
@@ -92,10 +86,10 @@ def get_PR(
     assert preds.shape == targets.shape
 
     # calculate P and R
-    TPs = ( preds &  targets).sum(axis=0)  # noqa: E201, E222
-    FPs = ( preds & ~targets).sum(axis=0)  # noqa: E201, E222
-    FNs = (~preds &  targets).sum(axis=0)  # noqa: E201, E222
-    eps = 1.e-9
+    TPs = (preds & targets).sum(axis=0)  # noqa: E201, E222
+    FPs = (preds & ~targets).sum(axis=0)  # noqa: E201, E222
+    FNs = (~preds & targets).sum(axis=0)  # noqa: E201, E222
+    eps = 1.0e-9
     Ps = TPs / (TPs + FPs + eps)
     Rs = TPs / (TPs + FNs + eps)
 
